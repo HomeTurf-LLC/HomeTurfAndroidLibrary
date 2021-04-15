@@ -1,0 +1,12 @@
+<resources>
+    <string name="home_turf_url">https://ci-app.hometurfapp.com</string>
+    <string name="home_turf_team_id"></string>
+    <string name="home_turf_com_auth0_client_id"></string>
+    <string name="home_turf_com_auth0_domain"></string>
+    <string name="home_turf_com_auth0_audience"></string>
+    <string name="home_turf_com_auth0_scheme"></string>
+    <string name="home_turf_use_auth0">false</string>
+    <string name="home_turf_channel_name">HomeTurf</string>
+    <string name="home_turf_channel_description">Game event notifications</string>
+    <string name="home_turf_channel_id">HomeTurfEvents</string>
+</resources>
