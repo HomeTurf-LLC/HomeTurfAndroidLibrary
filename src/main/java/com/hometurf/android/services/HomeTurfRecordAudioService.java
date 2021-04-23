@@ -32,8 +32,6 @@ public class HomeTurfRecordAudioService {
     public void startRecording(long timeOfRequestFromWebMillis) {
         // TODO: possibly add lag between web + native if needed here
         long requestTimeMillis = System.currentTimeMillis();
-//        Log.d("Request time (web)", String.valueOf(timeOfRequestFromWebMillis));
-//        Log.d("Request time (native)", String.valueOf(requestTimeMillis));
         offsetFromWebServerTimeMillis = requestTimeMillis - timeOfRequestFromWebMillis;
         sampleRate = getBestSampleRate();
         int minBufferSize = AudioRecord.getMinBufferSize(sampleRate,
@@ -55,13 +53,45 @@ public class HomeTurfRecordAudioService {
         mHandler.postDelayed(this::stopRecording, RECORDING_MILLIS);
     }
 
+    public void startRecordingTeamScream() {
+        sampleRate = getBestSampleRate();
+        int minBufferSize = AudioRecord.getMinBufferSize(sampleRate,
+                RECORDER_CHANNELS, RECORDER_AUDIO_ENCODING);
+//        int bufferElemSize = BufferElements2Rec * BytesPerElement;
+        int bufferSize = 60000;
+        audioBufferArray = new float[bufferSize];
+        recorder = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                sampleRate, RECORDER_CHANNELS,
+                RECORDER_AUDIO_ENCODING, minBufferSize);
+
+        recorder.startRecording();
+        isRecording = true;
+        recordingThread = new Thread(this::recordAudioToBufferWithDecibels, "AudioRecorder Thread");
+        recordingThread.start();
+        Handler mHandler = new Handler();
+        mHandler.postDelayed(this::stopRecordingTeamScream, RECORDING_MILLIS);
+    }
+
     private void recordAudioToBuffer() {
         System.out.println("at record audio to buffer");
         int offset = 0;
         while (isRecording) {
             offset += recorder.read(audioBufferArray, offset, BufferElements2Rec, AudioRecord.READ_BLOCKING);
-            // Calculate decibels?
-//          webView.evaluateJavascript("homeTurfCallbackFromNative.execute({action: 'HANDLE_AUDIO_LEVEL', data: {decibelLevel: }})");
+        }
+    }
+
+    private void recordAudioToBufferWithDecibels() {
+        System.out.println("at record audio to buffer with decibels");
+        int offset = 0;
+        while (isRecording) {
+            offset += recorder.read(audioBufferArray, offset, BufferElements2Rec, AudioRecord.READ_BLOCKING);
+            double p2 = audioBufferArray[audioBufferArray.length - 1];
+            double decibelLevel;
+            if (p2 == 0)
+                decibelLevel = -160;
+            else
+                decibelLevel = 20.0 * Math.log10(p2/65535.0); // From https://stackoverflow.com/questions/8766383/get-decibel-values-whilst-recording-sound
+            javascriptService.executeJavaScriptActionAndRawDataInWebView("RECORD_TEAM_SCREAM_CURRENT_NOISE_LEVEL", String.valueOf(decibelLevel));
         }
     }
 
@@ -73,8 +103,20 @@ public class HomeTurfRecordAudioService {
             recorder.release();
             recorder = null;
             recordingThread = null;
-            javascriptService.executeJavaScriptActionAndRawDataInWebView("HANDLE_AUDIO", String.format("{sampleRate: %s, startTime: %s, nativeResult: \"%s\"}}",
+            javascriptService.executeJavaScriptActionAndRawDataInWebView("RECORD_AUDIO_SUCCESS", String.format("{sampleRate: %s, startTime: %s, nativeResult: \"%s\"}",
                     sampleRate, startTimeSeconds, Arrays.toString(audioBufferArray)));
+        }
+    }
+
+    public void stopRecordingTeamScream() {
+        // stops the recording activity
+        if (null != recorder) {
+            isRecording = false;
+            recorder.stop();
+            recorder.release();
+            recorder = null;
+            recordingThread = null;
+            javascriptService.executeJavaScriptActionInWebView("RECORD_TEAM_SCREAM_SUCCESS");
         }
     }
 

@@ -302,6 +302,12 @@ public class HomeTurfWebViewActivity extends Activity {
     }
 
     @JavascriptInterface
+    public void recordTeamScream() {
+        javascriptService.executeJavaScriptActionInWebView("RECORD_TEAM_SCREAM_REQUEST_RECEIVED");
+        recordAudioService.startRecordingTeamScream();
+    }
+
+    @JavascriptInterface
     public void requestRecordAudioPermission() {
         javascriptService.executeJavaScriptActionInWebView("REQUEST_RECORD_AUDIO_PERMISSION_RECEIVED");
         System.out.println("Requesting audio + time sync permissions");
