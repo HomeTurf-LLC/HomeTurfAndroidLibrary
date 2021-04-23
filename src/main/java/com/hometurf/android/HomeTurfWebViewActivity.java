@@ -7,6 +7,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -29,12 +30,15 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 import com.hometurf.android.interfaces.HomeTurfBaseAuth0Service;
+import com.hometurf.android.receivers.HomeTurfBroadcastReceiver;
 import com.hometurf.android.services.HomeTurfImageUploadService;
 import com.hometurf.android.services.HomeTurfJavascriptService;
 import com.hometurf.android.services.HomeTurfRecordAudioService;
@@ -46,6 +50,7 @@ import static com.hometurf.android.constants.PermissionCodes.INPUT_FILE_REQUEST_
 import static com.hometurf.android.constants.PermissionCodes.MY_PERMISSIONS_RECORD_AUDIO;
 import static com.hometurf.android.constants.PermissionCodes.REQUEST_CAMERA_FOR_UPLOAD;
 import static com.hometurf.android.constants.PermissionCodes.REQUEST_FINE_LOCATION;
+import static com.hometurf.android.constants.PermissionCodes.REQUEST_SHARE;
 
 public class HomeTurfWebViewActivity extends Activity {
 
@@ -270,6 +275,24 @@ public class HomeTurfWebViewActivity extends Activity {
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
         notificationManager.notify(nextNotificationId, notification);
         nextNotificationId = (nextNotificationId % MAX_NUMBER_NOTIFICATIONS) + 1;
+    }
+
+    @JavascriptInterface
+    public void share(@NonNull String title, @NonNull String message, @Nullable String subject) {
+        Intent sendIntent = new Intent();
+        sendIntent.setAction(Intent.ACTION_SEND);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, message);
+        if (subject != null) {
+            sendIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
+        }
+        sendIntent.setType("text/plain");
+        Intent shareIntent = Intent.createChooser(sendIntent, title);
+        startActivity(shareIntent);
+        Context myContext = getApplicationContext();
+        PendingIntent pi = PendingIntent.getBroadcast(myContext, REQUEST_SHARE,
+                new Intent(myContext, HomeTurfBroadcastReceiver.class),
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent.createChooser(shareIntent, null, pi.getIntentSender());
     }
 
     @JavascriptInterface
