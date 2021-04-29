@@ -75,8 +75,8 @@ public class HomeTurfWebViewActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
-        destroyWebView();
+        // Let web handle back transition rather than popping view by default
+        javascriptService.executeJavaScriptActionInWebView("HARDWARE_BACK_BUTTON_PRESSED");
     }
 
     public void destroyWebView() {
@@ -226,8 +226,10 @@ public class HomeTurfWebViewActivity extends Activity {
 
     @JavascriptInterface
     public void navigateBackToTeamApp() {
+        Log.d("nav", "HERE!!!");
         javascriptService.executeJavaScriptActionInWebView("NAVIGATE_BACK_TO_TEAM_APP_REQUEST_RECEIVED");
-        new Handler(Looper.getMainLooper()).post(this::onBackPressed);
+        this.finishAfterTransition();
+        destroyWebView();
     }
 
     @JavascriptInterface
