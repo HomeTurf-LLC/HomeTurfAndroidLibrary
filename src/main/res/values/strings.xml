@@ -1,11 +1,11 @@
 <resources>
     <string name="home_turf_url">https://ci-app.hometurfapp.com</string>
-    <string name="home_turf_team_id"></string>
-    <string name="home_turf_com_auth0_client_id"></string>
-    <string name="home_turf_com_auth0_domain"></string>
-    <string name="home_turf_com_auth0_audience"></string>
-    <string name="home_turf_com_auth0_scheme"></string>
-    <string name="home_turf_use_auth0">false</string>
+    <string name="home_turf_team_id">441766b9-0f24-11e2-8525-18a905767e44</string>
+    <string name="home_turf_com_auth0_client_id">sm2iY4OwL0Pcp2wfzY6X2MIPnO18awFN</string>
+    <string name="home_turf_com_auth0_domain">dev-p428fe5m.us.auth0.com</string>
+    <string name="home_turf_com_auth0_audience">https://api.hometurfapp.com/v1/api/</string>
+    <string name="home_turf_com_auth0_scheme">com.hometurf.android</string>
+    <string name="home_turf_use_auth0">true</string>
     <string name="home_turf_channel_name">HomeTurf</string>
     <string name="home_turf_channel_description">Game event notifications</string>
     <string name="home_turf_channel_id">HomeTurfEvents</string>

@@ -64,12 +64,47 @@ public class HomeTurfWebViewActivity extends Activity {
     private int nextNotificationId = 0;
     private final int MAX_NUMBER_NOTIFICATIONS = 5;
     private boolean isBackgrounded = false;
+    private final int defaultBackgroundColor = Color.parseColor("#000000");
 
     public HomeTurfWebViewActivity() {
     }
 
     public static void setAuth0Service(HomeTurfBaseAuth0Service auth0Service) {
         HomeTurfWebViewActivity.auth0Service = auth0Service;
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        destroyWebView();
+    }
+
+    public void destroyWebView() {
+        // From: https://stackoverflow.com/questions/17418503/destroy-webview-in-android
+        webView.clearHistory();
+
+        // NOTE: clears RAM cache, if you pass true, it will also clear the disk cache.
+        // Probably not a great idea to pass true if you have other WebViews still alive.
+        webView.clearCache(true);
+
+        // Loading a blank page is optional, but will ensure that the WebView isn't doing anything when you destroy it.
+        webView.loadUrl("about:blank");
+
+        webView.onPause();
+        webView.removeAllViews();
+        webView.destroyDrawingCache();
+
+        // NOTE: This pauses JavaScript execution for ALL WebViews,
+        // do not use if you have other WebViews still alive.
+        // If you create another WebView after calling this,
+        // make sure to call mWebView.resumeTimers().
+        webView.pauseTimers();
+
+        // NOTE: This can occasionally cause a segfault below API 17 (4.2)
+        webView.destroy();
+
+        // Null out the reference so that you don't end up re-using it.
+        webView = null;
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -105,7 +140,7 @@ public class HomeTurfWebViewActivity extends Activity {
         webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
         webView.getSettings().setUseWideViewPort(true);
         webView.getSettings().setLoadWithOverviewMode(true);
-        webView.setBackgroundColor(Color.parseColor("#0a1129"));
+        webView.setBackgroundColor(defaultBackgroundColor);
         CookieHandler.setDefault(new java.net.CookieManager());
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().acceptCookie();
@@ -235,7 +270,8 @@ public class HomeTurfWebViewActivity extends Activity {
     private void createNotificationChannel() {
         // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is new and not in the support library
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES
+                .O) {
             CharSequence name = getString(R.string.home_turf_channel_name);
             String description = getString(R.string.home_turf_channel_description);
             String channelId = getString(R.string.home_turf_channel_id);
@@ -279,20 +315,38 @@ public class HomeTurfWebViewActivity extends Activity {
 
     @JavascriptInterface
     public void share(@NonNull String title, @NonNull String message, @Nullable String subject) {
-        Intent sendIntent = new Intent();
-        sendIntent.setAction(Intent.ACTION_SEND);
-        sendIntent.putExtra(Intent.EXTRA_TEXT, message);
-        if (subject != null) {
-            sendIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
+        javascriptService.executeJavaScriptActionInWebView("SHARE_REQUEST_RECEIVED");
+        try {
+            Intent sendIntent = new Intent();
+            sendIntent.setAction(Intent.ACTION_SEND);
+            sendIntent.putExtra(Intent.EXTRA_TEXT, message);
+            if (subject != null) {
+                sendIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
+            }
+            sendIntent.setType("text/plain");
+            Intent shareIntent = Intent.createChooser(sendIntent, title);
+            startActivity(shareIntent);
+            Context myContext = getApplicationContext();
+            PendingIntent pi = PendingIntent.getBroadcast(myContext, REQUEST_SHARE,
+                    new Intent(myContext, HomeTurfBroadcastReceiver.class),
+                    PendingIntent.FLAG_UPDATE_CURRENT);
+            Intent.createChooser(shareIntent, null, pi.getIntentSender());
+            javascriptService.executeJavaScriptActionInWebView("SHARE_SUCCESS"); // TODO: Should this be returned after intent is closed?
+        } catch (Exception e) {
+            javascriptService.executeJavaScriptActionAndStringDataInWebView("SHARE_ERROR", e.getMessage());
         }
-        sendIntent.setType("text/plain");
-        Intent shareIntent = Intent.createChooser(sendIntent, title);
-        startActivity(shareIntent);
-        Context myContext = getApplicationContext();
-        PendingIntent pi = PendingIntent.getBroadcast(myContext, REQUEST_SHARE,
-                new Intent(myContext, HomeTurfBroadcastReceiver.class),
-                PendingIntent.FLAG_UPDATE_CURRENT);
-        Intent.createChooser(shareIntent, null, pi.getIntentSender());
+    }
+
+    @JavascriptInterface
+    public void changeBackgroundColor(String color) {
+        javascriptService.executeJavaScriptActionInWebView("NATIVE_BACKGROUND_COLOR_CHANGE_REQUEST_RECEIVED");
+        try {
+            String colorWithHash = "#" + color;
+            webView.setBackgroundColor(Color.parseColor(colorWithHash));
+            javascriptService.executeJavaScriptActionInWebView("NATIVE_BACKGROUND_COLOR_CHANGE_SUCCESS");
+        } catch (IllegalArgumentException e) {
+            javascriptService.executeJavaScriptActionAndStringDataInWebView("NATIVE_BACKGROUND_COLOR_CHANGE_ERROR", "Invalid color provided");
+        }
     }
 
     @JavascriptInterface
