@@ -141,6 +141,7 @@ public class HomeTurfWebViewActivity extends Activity {
         webView.getSettings().setUseWideViewPort(true);
         webView.getSettings().setLoadWithOverviewMode(true);
         webView.setBackgroundColor(defaultBackgroundColor);
+//        webView.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null);
         CookieHandler.setDefault(new java.net.CookieManager());
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().acceptCookie();
