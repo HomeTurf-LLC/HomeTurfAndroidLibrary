@@ -126,10 +126,6 @@ public class HomeTurfWebViewActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 return false; // Prevent crash - see https://stackoverflow.com/questions/47592026/my-application-keeps-on-crashing-using-webview
             }
-
-            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                handler.proceed();
-            }
         });
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
