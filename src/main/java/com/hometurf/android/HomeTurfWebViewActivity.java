@@ -26,8 +26,10 @@ import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebSettings;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -58,6 +60,7 @@ public class HomeTurfWebViewActivity extends Activity {
     private String geolocationOrigin;
     private GeolocationPermissions.Callback geolocationCallback;
     private static HomeTurfBaseAuth0Service auth0Service;
+    private static String watchPartyId;
     private HomeTurfJavascriptService javascriptService;
     private HomeTurfImageUploadService imageUploadService;
     private HomeTurfRecordAudioService recordAudioService;
@@ -71,6 +74,10 @@ public class HomeTurfWebViewActivity extends Activity {
 
     public static void setAuth0Service(HomeTurfBaseAuth0Service auth0Service) {
         HomeTurfWebViewActivity.auth0Service = auth0Service;
+    }
+
+    public static void setWatchPartyId(String watchPartyId) {
+        HomeTurfWebViewActivity.watchPartyId = watchPartyId;
     }
 
     @Override
@@ -136,6 +143,7 @@ public class HomeTurfWebViewActivity extends Activity {
         webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
         webView.getSettings().setUseWideViewPort(true);
         webView.getSettings().setLoadWithOverviewMode(true);
+        webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
         webView.setBackgroundColor(defaultBackgroundColor);
 //        webView.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null);
         CookieHandler.setDefault(new java.net.CookieManager());
@@ -172,7 +180,10 @@ public class HomeTurfWebViewActivity extends Activity {
         String homeTurfUrl = applicationContextResources.getString(R.string.home_turf_url);
         String homeTurfTeamId = applicationContextResources.getString(R.string.home_turf_team_id);
         String useNativeAuth0 = applicationContextResources.getString(R.string.home_turf_use_auth0); // Defaults to false in lib R.string file
-        webView.loadUrl(String.format("%s?activeTeamId=%s&useNativeAuth0=%s", homeTurfUrl, homeTurfTeamId, useNativeAuth0));
+        String useWatchPartyId = isNullEmpty(watchPartyId) ? "" : watchPartyId;
+        webView.clearCache(true);
+        webView.clearHistory();
+        webView.loadUrl(String.format("%s?activeTeamId=%s&useNativeAuth0=%s&watchPartyId=%s", homeTurfUrl, homeTurfTeamId, useNativeAuth0, useWatchPartyId));
         createNotificationChannel();
     }
 
