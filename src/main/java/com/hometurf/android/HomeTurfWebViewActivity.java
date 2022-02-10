@@ -19,6 +19,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
@@ -180,7 +181,7 @@ public class HomeTurfWebViewActivity extends Activity {
         String homeTurfUrl = applicationContextResources.getString(R.string.home_turf_url);
         String homeTurfTeamId = applicationContextResources.getString(R.string.home_turf_team_id);
         String useNativeAuth0 = applicationContextResources.getString(R.string.home_turf_use_auth0); // Defaults to false in lib R.string file
-        String useWatchPartyId = isNullEmpty(watchPartyId) ? "" : watchPartyId;
+        String useWatchPartyId = TextUtils.isEmpty(watchPartyId) ? "" : watchPartyId;
         webView.clearCache(true);
         webView.clearHistory();
         webView.loadUrl(String.format("%s?activeTeamId=%s&useNativeAuth0=%s&watchPartyId=%s", homeTurfUrl, homeTurfTeamId, useNativeAuth0, useWatchPartyId));
