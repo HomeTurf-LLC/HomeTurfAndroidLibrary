@@ -2,6 +2,7 @@ package com.hometurf.android;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -24,6 +25,7 @@ import android.util.Log;
 import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
+import android.webkit.PermissionRequest;
 import android.webkit.SslErrorHandler;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -50,6 +52,7 @@ import com.hometurf.android.utils.HomeTurfOrientationUtils;
 import java.net.CookieHandler;
 
 import static com.hometurf.android.constants.PermissionCodes.INPUT_FILE_REQUEST_CODE;
+import static com.hometurf.android.constants.PermissionCodes.MY_PERMISSIONS_AV;
 import static com.hometurf.android.constants.PermissionCodes.MY_PERMISSIONS_RECORD_AUDIO;
 import static com.hometurf.android.constants.PermissionCodes.REQUEST_CAMERA_FOR_UPLOAD;
 import static com.hometurf.android.constants.PermissionCodes.REQUEST_FINE_LOCATION;
@@ -157,6 +160,12 @@ public class HomeTurfWebViewActivity extends Activity {
 //                if (newProgress == 100) {
 //                }
 //            }
+            @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+            @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                request.grant(request.getResources());
+            }
+
             @Override
             public void onGeolocationPermissionsShowPrompt(String origin,
                                                            GeolocationPermissions.Callback callback) {
@@ -373,6 +382,38 @@ public class HomeTurfWebViewActivity extends Activity {
     }
 
     @JavascriptInterface
+    public void requestAVPermission() {
+        javascriptService.executeJavaScriptActionInWebView("REQUEST_AV_PERMISSION_RECEIVED");
+        System.out.println("Requesting audio + video permissions");
+        boolean audioPermissionAlreadyGranted = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.RECORD_AUDIO)
+                == PackageManager.PERMISSION_GRANTED;
+        boolean videoPermissionAlreadyGranted = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED;
+
+        if (!audioPermissionAlreadyGranted || !videoPermissionAlreadyGranted) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.RECORD_AUDIO)) {
+                Toast.makeText(this, "HomeTurf needs access to your microphone for your Watch Party", Toast.LENGTH_LONG).show();
+            }
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.CAMERA)) {
+                Toast.makeText(this, "HomeTurf needs access to your camera for your Watch Party", Toast.LENGTH_LONG).show();
+            }
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA},
+                    MY_PERMISSIONS_AV);
+
+        }
+        else {
+            System.out.println("Permission already granted");
+            javascriptService.executeJavaScriptActionInWebView("REQUEST_AV_PERMISSION_SUCCESS");
+        }
+    }
+
+    @JavascriptInterface
     public void requestRecordAudioPermission() {
         javascriptService.executeJavaScriptActionInWebView("REQUEST_RECORD_AUDIO_PERMISSION_RECEIVED");
         System.out.println("Requesting audio + time sync permissions");
@@ -392,6 +433,29 @@ public class HomeTurfWebViewActivity extends Activity {
         else {
             System.out.println("Permission already granted");
             javascriptService.executeJavaScriptActionInWebView("REQUEST_RECORD_AUDIO_PERMISSION_SUCCESS");
+        }
+    }
+
+    @JavascriptInterface
+    public void requestCameraPermission() {
+        javascriptService.executeJavaScriptActionInWebView("REQUEST_CAMERA_PERMISSION_RECEIVED");
+        System.out.println("Requesting camera permissions");
+        boolean permissionAlreadyGranted = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED;
+        if (!permissionAlreadyGranted) {
+            // When permission is not granted by user, show them message why this permission is needed.
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.CAMERA)) {
+                Toast.makeText(this, "HomeTurf needs your permission to use you camera for your Watch Party,", Toast.LENGTH_LONG).show();
+            }
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CAMERA},
+                    REQUEST_CAMERA_FOR_UPLOAD);
+        }
+        else {
+            System.out.println("Permission already granted");
+            javascriptService.executeJavaScriptActionInWebView("REQUEST_CAMERA_PERMISSION_SUCCESS");
         }
     }
 
@@ -440,6 +504,34 @@ public class HomeTurfWebViewActivity extends Activity {
                 }
                 if (imageUploadService.handlingUpload) {
                     imageUploadService.showFileUpload(allowCamera);
+                }
+            }
+            case MY_PERMISSIONS_AV: {
+                boolean allowCamera = false;
+                boolean allowAudio = false;
+
+                System.out.println("grand results length " + grantResults.length);
+
+                if (grantResults.length > 1) {
+                    if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        System.out.println("Permission for audio granted");
+                        allowCamera = true;
+                    }
+                    if (grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                        System.out.println("Permission for camera granted");
+                        allowAudio = true;
+                    }
+                }
+                if (!allowCamera && !allowAudio) {
+                    System.out.println("Permission denied");
+                    System.out.println("Camera permission " + allowCamera);
+                    System.out.println("Audio permission " + allowAudio);
+                    Toast.makeText(this, "Permission denied to camera and/or microphone", Toast.LENGTH_LONG).show();
+                    // Send back perm denied message
+                    javascriptService.executeJavaScriptActionInWebView("REQUEST_AV_PERMISSION_ERROR");
+                } else {
+                    System.out.println("Permission for camera and microphone granted");
+                    javascriptService.executeJavaScriptActionInWebView("REQUEST_AV_PERMISSION_SUCCESS");
                 }
             }
         }
